@@ -1,7 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1a1a1a" rx="112" />
-  <!-- Outer elegant star -->
-  <path d="M 256 120 Q 256 256 392 256 Q 256 256 256 392 Q 256 256 120 256 Q 256 256 256 120 Z" fill="#ebede8" opacity="0.9" />
-  <!-- Inner gold star -->
-  <path d="M 256 180 Q 256 256 332 256 Q 256 256 256 332 Q 256 256 180 256 Q 256 256 256 180 Z" fill="#b8860b" />
+  <!-- Background gradient for the sunset sky -->
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8a76d6" />    <!-- Soft purple -->
+      <stop offset="45%" stop-color="#dd99a8" />   <!-- Soft pink -->
+      <stop offset="80%" stop-color="#fad396" />   <!-- Sunset yellow/orange -->
+      <stop offset="100%" stop-color="#fdf4d8" />  <!-- Bright horizon -->
+    </linearGradient>
+    <linearGradient id="frameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#90654c" />
+      <stop offset="100%" stop-color="#6e4630" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="15" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- App Icon Base Shape -->
+  <rect width="512" height="512" fill="url(#skyGrad)" rx="116" />
+
+  <!-- Sun -->
+  <circle cx="256" cy="270" r="80" fill="#fffbe6" filter="url(#glow)" />
+
+  <!-- Background Hills -->
+  <path d="M -20 320 Q 150 250 300 340 T 530 330 L 530 512 L -20 512 Z" fill="#d49479" opacity="0.8" />
+  <path d="M -20 370 Q 150 310 320 390 T 530 360 L 530 512 L -20 512 Z" fill="#b8785e" opacity="0.9" />
+  <path d="M -20 420 Q 200 360 530 450 L 530 512 L -20 512 Z" fill="#915843" opacity="1" />
+
+  <!-- Window Arch -->
+  <path d="M 110 512 L 110 240 A 146 146 0 0 1 402 240 L 402 512" fill="none" stroke="url(#frameGrad)" stroke-width="28" />
+  
+  <!-- Window Crossbars -->
+  <line x1="256" y1="95" x2="256" y2="512" stroke="url(#frameGrad)" stroke-width="22" />
+  <line x1="110" y1="310" x2="400" y2="310" stroke="url(#frameGrad)" stroke-width="22" />
+
+  <!-- Heart floating in the center / bottom representing the reflection/diary -->
+  <g transform="translate(256, 420) scale(1.6)">
+    <!-- White outline/base -->
+    <path d="M 0 15 L -13 2.5 Q -23 -7 -13 -17 A 10 10 0 0 1 0 -5 A 10 10 0 0 1 13 -17 Q 23 -7 13 2.5 Z" fill="#fdfcfb" />
+    <!-- Pinkish inner heart -->
+    <path d="M 0 12 L -10 2.5 Q -18 -5 -10 -13 A 7 7 0 0 1 0 -6 A 7 7 0 0 1 10 -13 Q 18 -5 10 2.5 Z" fill="#e5989b" />
+  </g>
+
+  <!-- Little stars/sparkles in the purple sky -->
+  <path d="M 120 120 L 125 135 L 140 140 L 125 145 L 120 160 L 115 145 L 100 140 L 115 135 Z" fill="#fff" opacity="0.7" transform="scale(0.6) translate(80, 50)" />
+  <path d="M 400 90 L 403 100 L 413 103 L 403 106 L 400 116 L 397 106 L 387 103 L 397 100 Z" fill="#fff" opacity="0.9" transform="scale(0.5) translate(400, -20)" />
+  
+  <!-- Tiny crescent moon -->
+  <path d="M 330 110 A 25 25 0 1 0 360 140 A 30 30 0 1 1 330 110 Z" fill="#fffcf0" opacity="0.85" />
 </svg>
