@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1a1a1a" rx="112" />
+  <!-- Outer elegant star -->
+  <path d="M 256 120 Q 256 256 392 256 Q 256 256 256 392 Q 256 256 120 256 Q 256 256 256 120 Z" fill="#ebede8" opacity="0.9" />
+  <!-- Inner gold star -->
+  <path d="M 256 180 Q 256 256 332 256 Q 256 256 256 332 Q 256 256 180 256 Q 256 256 256 180 Z" fill="#b8860b" />
+</svg>

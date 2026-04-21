@@ -1,0 +1,17 @@
+{
+  "name": "The Daily Reflection",
+  "short_name": "Reflection",
+  "description": "心豊かな暮らしのための空間",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fdfcfb",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any 192x192 512x512",
+      "purpose": "any"
+    }
+  ]
+}
