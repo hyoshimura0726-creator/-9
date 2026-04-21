@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "DailyLog": {
+      "title": "DailyLog",
+      "description": "A single day's reflection entry.",
+      "type": "object",
+      "properties": {
+        "good": {
+          "type": "string",
+          "description": "The bright spots of the day."
+        },
+        "bad": {
+          "type": "string",
+          "description": "Lessons learned or reflections."
+        },
+        "gratitude": {
+          "type": "string",
+          "description": "Moment of gratitude."
+        },
+        "aiComment": {
+          "type": "string",
+          "description": "Gemini generated insight."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Base64 encoded image."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns this log."
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "When the log was last updated."
+        }
+      },
+      "required": ["ownerId", "updatedAt"]
+    },
+    "MonthlyReview": {
+      "title": "MonthlyReview",
+      "description": "AI generated monthly summary.",
+      "type": "object",
+      "properties": {
+        "reviewText": {
+          "type": "string",
+          "description": "The AI summary text."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns this review."
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "When the review was updated."
+        }
+      },
+      "required": ["ownerId", "updatedAt", "reviewText"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/logs/{logDate}": {
+      "schema": {
+        "$ref": "#/entities/DailyLog"
+      },
+      "description": "User's daily logs indexed by YYYY-MM-DD."
+    },
+    "users/{userId}/monthly_reviews/{monthId}": {
+      "schema": {
+        "$ref": "#/entities/MonthlyReview"
+      },
+      "description": "User's monthly reviews indexed by YYYY-MM."
+    }
+  }
+}

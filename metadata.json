@@ -1,0 +1,6 @@
+{
+  "name": "Calendar Diary AI",
+  "description": "カレンダー形式の日記アプリ。Good / Bad / Gratitudeを記録し、AIから励ましのコメントをもらえます。",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

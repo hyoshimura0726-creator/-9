@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidDateId(id) { 
+      return id is string && id.size() == 10 && id.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); 
+    }
+
+    function isValidMonthId(id) {
+      return id is string && id.size() == 7 && id.matches('^[0-9]{4}-[0-9]{2}$');
+    }
+
+    function isValidMonthlyReview(data, userId) {
+      return data.keys().hasAll(['ownerId', 'updatedAt', 'reviewText'])
+        && data.ownerId == request.auth.uid
+        && data.ownerId == userId
+        && data.updatedAt == request.time
+        && data.reviewText is string
+        && data.reviewText.size() <= 20000;
+    }
+
+    function isValidDailyLog(data, userId) {
+      return data.keys().hasAll(['ownerId', 'updatedAt']) 
+        && data.ownerId == request.auth.uid
+        && data.ownerId == userId
+        && data.updatedAt == request.time
+        && (!('good' in data) || (data.good is string && data.good.size() <= 10000))
+        && (!('bad' in data) || (data.bad is string && data.bad.size() <= 10000))
+        && (!('gratitude' in data) || (data.gratitude is string && data.gratitude.size() <= 10000))
+        && (!('aiComment' in data) || (data.aiComment is string && data.aiComment.size() <= 10000))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500000))
+        && (!('images' in data) || (data.images is list && data.images.size() <= 4))
+        && (!('moodColor' in data) || (data.moodColor is string && data.moodColor.matches('^#[0-9a-fA-F]{6}$')));
+    }
+
+    match /users/{userId}/logs/{logDate} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      
+      allow create: if isSignedIn() 
+        && request.auth.uid == userId 
+        && isValidDateId(logDate)
+        && isValidDailyLog(incoming(), userId)
+        && incoming().keys().hasOnly(['ownerId', 'updatedAt', 'good', 'bad', 'gratitude', 'aiComment', 'imageUrl', 'images', 'moodColor']);
+        
+      allow update: if isSignedIn() 
+        && request.auth.uid == userId 
+        && isValidDailyLog(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['good', 'bad', 'gratitude', 'aiComment', 'imageUrl', 'images', 'moodColor', 'updatedAt'])
+        );
+        
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/monthly_reviews/{monthId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidMonthId(monthId)
+        && isValidMonthlyReview(incoming(), userId)
+        && incoming().keys().hasOnly(['ownerId', 'updatedAt', 'reviewText']);
+        
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidMonthlyReview(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'reviewText'])
+        );
+        
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}
