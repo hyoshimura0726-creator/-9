@@ -6,7 +6,7 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/-9/', // FIXME: GitHubにエクスポート後、ここを /<新しいリポジトリ名>/ に変更してください
+    base: '/calendar-diary/', // FIXME: GitHubにエクスポート後、ここを /<新しいリポジトリ名>/ に変更してください
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
