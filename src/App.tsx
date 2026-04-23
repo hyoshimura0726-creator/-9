@@ -4,7 +4,7 @@ import {
   startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay 
 } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, X, PenLine, Sparkles, BookOpen, ImagePlus, Printer, LayoutGrid, CalendarDays, Check, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, PenLine, Sparkles, BookOpen, ImagePlus, Printer, LayoutGrid, CalendarDays, Check, Trash2, Mic } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -56,6 +56,11 @@ export default function App() {
   // AI comment loading state
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isReviewLoading, setIsReviewLoading] = useState(false);
+
+  // Speech Recognition state
+  const [recordingField, setRecordingField] = useState<'good' | 'bad' | 'gratitude' | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const originalTextRef = useRef<string>('');
 
   // Load from auth & firestore
   useEffect(() => {
@@ -162,6 +167,88 @@ export default function App() {
       ...prev,
       images: (prev.images || []).filter((_, idx) => idx !== indexToRemove)
     }));
+  };
+
+  // Speech Recognition Handle
+  useEffect(() => {
+    // stop recording if modal is closed
+    if (!isModalOpen && recordingField) {
+      recognitionRef.current?.stop();
+      setRecordingField(null);
+    }
+  }, [isModalOpen, recordingField]);
+
+  const toggleRecording = (field: 'good' | 'bad' | 'gratitude') => {
+    if (recordingField === field) {
+      recognitionRef.current?.stop();
+      setRecordingField(null);
+      return;
+    }
+
+    if (recordingField) {
+      recognitionRef.current?.stop();
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('恐れ入りますが、お使いのブラウザは音声入力に対応していません。(Chrome/Safari等を推奨します)');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ja-JP';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    originalTextRef.current = editForm[field] || '';
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      // If there's already text, maybe add a line break if we append new dictated text
+      // However, making it smooth is better. Just append.
+      const newText = originalTextRef.current 
+        + (originalTextRef.current && finalTranscript && !originalTextRef.current.endsWith('\n') ? ' ' : '')
+        + finalTranscript 
+        + interimTranscript;
+        
+      setEditForm(prev => ({ ...prev, [field]: newText }));
+
+      if (finalTranscript) {
+         originalTextRef.current = originalTextRef.current 
+           + (originalTextRef.current && !originalTextRef.current.endsWith('\n') ? ' ' : '') 
+           + finalTranscript;
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'no-speech') {
+        setRecordingField(null);
+      }
+    };
+
+    recognition.onend = () => {
+      setRecordingField(null);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setRecordingField(field);
+    } catch (e) {
+      console.error(e);
+      setRecordingField(null);
+    }
   };
 
   const handlePrint = useReactToPrint({
@@ -408,7 +495,7 @@ ${allLogsText}
                     {log.gratitude && (
                       <div className="italic font-serif text-[#4a4a30] text-sm leading-relaxed relative">
                         <span className="absolute -top-1 -left-2 text-amber-500/20 text-lg">✦</span>
-                        <p className="relative z-10 pl-2">{log.gratitude}</p>
+                        <p className="relative z-10 pl-2 whitespace-pre-wrap">{log.gratitude}</p>
                       </div>
                     )}
                   </div>
@@ -578,7 +665,7 @@ ${allLogsText}
                   <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block mb-2">
                     良かったこと (Good)
                   </label>
-                  <div className="w-full border-b border-[#eee] py-2 md:py-3 text-[14px] md:text-[15px] italic font-serif min-h-[40px] text-[#2c2c2c] leading-relaxed break-words">
+                  <div className="w-full border-b border-[#eee] py-2 md:py-3 text-[14px] md:text-[15px] italic font-serif min-h-[40px] text-[#2c2c2c] leading-relaxed break-words whitespace-pre-wrap">
                     {selectedLog?.good || <span className="text-[#ccc]">記録がありません。</span>}
                   </div>
                 </div>
@@ -587,7 +674,7 @@ ${allLogsText}
                   <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block mb-2">
                     反省点・学び (Bad)
                   </label>
-                  <div className="w-full border-b border-[#eee] py-2 md:py-3 text-[14px] md:text-[15px] italic font-serif min-h-[40px] text-[#2c2c2c] leading-relaxed break-words">
+                  <div className="w-full border-b border-[#eee] py-2 md:py-3 text-[14px] md:text-[15px] italic font-serif min-h-[40px] text-[#2c2c2c] leading-relaxed break-words whitespace-pre-wrap">
                     {selectedLog?.bad || <span className="text-[#ccc]">記録がありません。</span>}
                   </div>
                 </div>
@@ -596,7 +683,7 @@ ${allLogsText}
                   <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#b8860b] block mb-2">
                     今日の感謝 (Gratitude)
                   </label>
-                  <div className="w-full border border-[#f3e5ab] bg-[#fffdf0] px-4 md:px-5 py-3 md:py-4 text-[14px] md:text-[15px] italic font-serif min-h-[60px] text-[#4a4a30] leading-relaxed relative break-words shadow-sm">
+                  <div className="w-full border border-[#f3e5ab] bg-[#fffdf0] px-4 md:px-5 py-3 md:py-4 text-[14px] md:text-[15px] italic font-serif min-h-[60px] text-[#4a4a30] leading-relaxed relative break-words shadow-sm whitespace-pre-wrap">
                     <span className="absolute top-2 right-3 text-amber-500/40 text-lg leading-none font-serif">✦</span>
                     {selectedLog?.gratitude || <span className="text-amber-700/40">感謝の記録がありません。</span>}
                   </div>
@@ -731,36 +818,79 @@ ${allLogsText}
                 </div>
 
                 <div>
-                  <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block mb-2">
-                    良かったこと (Good)
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block">
+                      良かったこと (Good)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toggleRecording('good')}
+                      className={`p-1.5 rounded-full transition-colors flex items-center justify-center gap-1.5 ${recordingField === 'good' ? 'bg-red-50 text-red-500' : 'text-[#8c8c87] hover:bg-[#f5f5f0] hover:text-[#1a1a1a]'}`}
+                      title={recordingField === 'good' ? "録音停止" : "音声で入力"}
+                    >
+                      {recordingField === 'good' && <span className="text-[9px] uppercase tracking-widest font-bold animate-pulse">Listening...</span>}
+                      <Mic size={14} className={recordingField === 'good' ? 'animate-pulse' : ''} />
+                    </button>
+                  </div>
                   <textarea
                     value={editForm.good}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, good: e.target.value }))}
+                    onChange={(e) => {
+                      setEditForm(prev => ({ ...prev, good: e.target.value }));
+                      if (recordingField === 'good') originalTextRef.current = e.target.value;
+                    }}
                     placeholder="今日、笑顔になれたことは何ですか？"
                     className="w-full border-b border-[#e5e5e0] focus:border-[#5a5a40] bg-transparent outline-none py-2 md:py-3 text-[15px] md:text-base italic font-serif min-h-[70px] resize-none text-[#2c2c2c] transition-colors placeholder:text-[#ccc]"
                   />
                 </div>
                 
                 <div>
-                  <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block mb-2">
-                    反省点・学び (Bad)
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#1a1a1a] block">
+                      反省点・学び (Bad)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toggleRecording('bad')}
+                      className={`p-1.5 rounded-full transition-colors flex items-center justify-center gap-1.5 ${recordingField === 'bad' ? 'bg-red-50 text-red-500' : 'text-[#8c8c87] hover:bg-[#f5f5f0] hover:text-[#1a1a1a]'}`}
+                      title={recordingField === 'bad' ? "録音停止" : "音声で入力"}
+                    >
+                      {recordingField === 'bad' && <span className="text-[9px] uppercase tracking-widest font-bold animate-pulse">Listening...</span>}
+                      <Mic size={14} className={recordingField === 'bad' ? 'animate-pulse' : ''} />
+                    </button>
+                  </div>
                   <textarea
                     value={editForm.bad}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, bad: e.target.value }))}
+                    onChange={(e) => {
+                      setEditForm(prev => ({ ...prev, bad: e.target.value }));
+                      if (recordingField === 'bad') originalTextRef.current = e.target.value;
+                    }}
                     placeholder="改善したいことや、学んだことは？"
                     className="w-full border-b border-[#e5e5e0] focus:border-[#5a5a40] bg-transparent outline-none py-2 md:py-3 text-[15px] md:text-base italic font-serif min-h-[70px] resize-none text-[#2c2c2c] transition-colors placeholder:text-[#ccc]"
                   />
                 </div>
 
                 <div className="relative">
-                  <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#b8860b] block mb-2">
-                    今日の感謝 (Gratitude)
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#b8860b] block relative p-1 outline outline-1 outline-offset-2 outline-[#f3e5ab] bg-[#fffdf0] rounded-sm max-w-max">
+                      <span className="text-amber-500 absolute -top-1.5 -left-1 text-[10px]">✦</span>
+                      <span className="pl-2">今日の感謝 (Gratitude)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toggleRecording('gratitude')}
+                      className={`p-1.5 rounded-full transition-colors flex items-center justify-center gap-1.5 ${recordingField === 'gratitude' ? 'bg-amber-100 text-amber-600' : 'text-[#b8860b] hover:bg-amber-50 hover:text-amber-600'}`}
+                      title={recordingField === 'gratitude' ? "録音停止" : "音声で入力"}
+                    >
+                      {recordingField === 'gratitude' && <span className="text-[9px] uppercase tracking-widest font-bold animate-pulse text-amber-600">Listening...</span>}
+                      <Mic size={14} className={recordingField === 'gratitude' ? 'animate-pulse' : ''} />
+                    </button>
+                  </div>
                   <textarea
                     value={editForm.gratitude}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, gratitude: e.target.value }))}
+                    onChange={(e) => {
+                      setEditForm(prev => ({ ...prev, gratitude: e.target.value }));
+                      if (recordingField === 'gratitude') originalTextRef.current = e.target.value;
+                    }}
                     placeholder="誰かに感謝したいことや、小さな幸せを記録..."
                     className="w-full border border-[#f3e5ab] bg-[#fffdf0] focus:border-[#b8860b] shadow-sm outline-none px-3 md:px-4 py-3 md:py-4 text-[15px] md:text-base italic font-serif min-h-[90px] resize-none text-[#4a4a30] transition-colors placeholder:text-amber-700/30"
                   />
@@ -897,20 +1027,20 @@ ${allLogsText}
                     {log.good && (
                       <div>
                         <h4 className="text-[9px] uppercase tracking-widest text-[#8c8c87] mb-2 font-bold">Good</h4>
-                        <p className="font-serif italic text-sm leading-relaxed text-[#2c2c2c]">{log.good}</p>
+                        <p className="font-serif italic text-sm leading-relaxed text-[#2c2c2c] whitespace-pre-wrap">{log.good}</p>
                       </div>
                     )}
                     {log.bad && (
                       <div>
                         <h4 className="text-[9px] uppercase tracking-widest text-[#8c8c87] mb-2 font-bold">Bad</h4>
-                        <p className="font-serif italic text-sm leading-relaxed text-[#2c2c2c]">{log.bad}</p>
+                        <p className="font-serif italic text-sm leading-relaxed text-[#2c2c2c] whitespace-pre-wrap">{log.bad}</p>
                       </div>
                     )}
                     {log.gratitude && (
                       <div className="col-span-2 mt-4 bg-[#fffdf0] border border-[#f3e5ab] p-6 relative">
                         <span className="absolute top-4 right-4 text-amber-500/30 text-2xl font-serif">✦</span>
                         <h4 className="text-[9px] uppercase tracking-widest text-[#b8860b] mb-2 font-bold">Gratitude</h4>
-                        <p className="font-serif italic text-sm leading-relaxed text-[#4a4a30]">{log.gratitude}</p>
+                        <p className="font-serif italic text-sm leading-relaxed text-[#4a4a30] whitespace-pre-wrap">{log.gratitude}</p>
                       </div>
                     )}
                   </div>
